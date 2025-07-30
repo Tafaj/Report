@@ -1,0 +1,32 @@
+{
+  "id": "27f4a21f-066b-47d8-8bcf-f8074b4c3c0b",
+  "name": "JOVI Packing Slip",
+  "publisher": "Default Publisher",
+  "version": "1.0.0.0",
+  "brief": "JOVI Packing Slip Report",
+  "description": "Report for JOVI Packing Slip with bilingual layout as per customer requirements",
+  "privacyStatement": "",
+  "EULA": "",
+  "help": "",
+  "url": "",
+  "logo": "",
+  "dependencies": [],
+  "screenshots": [],
+  "platform": "26.0.0.0",
+  "application": "26.0.0.0",
+  "idRanges": [
+    {
+      "from": 50100,
+      "to": 50149
+    }
+  ],
+  "resourceExposurePolicy": {
+    "allowDebugging": true,
+    "allowDownloadingSource": true,
+    "includeSourceInSymbolFile": true
+  },
+  "runtime": "12.0",
+  "features": [
+    "NoImplicitWith"
+  ]
+}
