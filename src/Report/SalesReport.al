@@ -71,12 +71,10 @@ report 50101 "JOVI Packing Slip"
                 TotalQtyShipped := 0;
                 EnsurePackingSlipNo();
 
-                // Determina se è un cliente francese
                 IsFrenchCustomer := ("Language Code" = 'FRC') or ("Language Code" = 'fr-CA');
 
                 SalesReceivablesSetup.Get();
 
-                // Lettura termini EN
                 SalesReceivablesSetup.CalcFields("JOVI ENUS Terms");
                 Clear(TermsTextEN);
                 if SalesReceivablesSetup."JOVI ENUS Terms".HasValue() then begin
@@ -84,7 +82,6 @@ report 50101 "JOVI Packing Slip"
                     InStream.ReadText(TermsTextEN);
                 end;
 
-                // Lettura termini FR
                 SalesReceivablesSetup.CalcFields("JOVI fr-CA Terms");
                 Clear(TermsTextFR);
                 if SalesReceivablesSetup."JOVI fr-CA Terms".HasValue() then begin
@@ -92,7 +89,6 @@ report 50101 "JOVI Packing Slip"
                     InStream.ReadText(TermsTextFR);
                 end;
 
-                // Imposta i termini in base alla lingua
                 if IsFrenchCustomer then
                     TermsText := TermsTextFR
                 else
