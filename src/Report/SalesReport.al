@@ -39,6 +39,9 @@ report 50101 "JOVI Packing Slip"
             column(JOVI_No_of_Cartons; "JOVI No. of Cartons") { }
             column(Language_Code; "Language Code") { }
             column(Shipment_No; PackingSlipNo) { }
+            column(JOVI_Packing_Slip_Notes; "JOVI Packing Slip Notes") { }
+            column(TotalQtyShipped_Text; Format(TotalQtyShipped) + ' PCS') { }
+            column(IsFrenchCustomer; IsFrenchCustomer) { }
 
             dataitem("Sales Line"; "Sales Line")
             {
@@ -47,106 +50,81 @@ report 50101 "JOVI Packing Slip"
                 column(Line_Item_No_; "No.") { }
                 column(Line_Description; Description) { }
                 column(Line_Quantity; Quantity) { }
-                column(Line_Quantity_Text; Format(Quantity) + ' ' + "Sales Line"."Unit of Measure") { }
-                //column(Line_Quantity_Text; Format(Quantity) + ' PCS') { }
+                column(Line_Quantity_Text; Format(Quantity) + ' ' + GetUOMText()) { }
+
                 trigger OnAfterGetRecord()
                 begin
                     TotalQtyShipped += Quantity;
                 end;
             }
 
-            dataitem(Notes; Integer)
-            {
-                DataItemTableView = sorting(Number) where(Number = const(1));
-                column(NoteLine1; GetNoteLine(1)) { }
-                column(NoteLine2; GetNoteLine(2)) { }
-                column(NoteLine3; GetNoteLine(3)) { }
-                column(NoteLine4; GetNoteLine(4)) { }
-            }
-
             dataitem(Terms; Integer)
             {
                 DataItemTableView = sorting(Number) where(Number = const(1));
-                column(TermsText_EN; TermsTextEN) { }
-                column(TermsText_FR; TermsTextFR) { }
+                column(TermsText; TermsText) { }
             }
 
-            dataitem(TotalQty; Integer)
-            {
-                DataItemTableView = sorting(Number) where(Number = const(1));
-                column(TotalQtyShipped_Value; TotalQtyShipped) { }
-                column(TotalQtyShipped_Text; Format(TotalQtyShipped)) { }
-            }
             trigger OnAfterGetRecord()
-            begin
-                EnsurePackingSlipNo();
-
-                SalesReceivablesSetup.Get();
-                SalesReceivablesSetup.CalcFields("JOVI ENUS Terms", "JOVI fr-CA Terms");
-
-                TempBlobReader.Content := SalesReceivablesSetup."JOVI ENUS Terms";
-                ReadBlobAsText(TempBlobReader, TermsTextEN);
-                TempBlobReader.Content := SalesReceivablesSetup."JOVI fr-CA Terms";
-                ReadBlobAsText(TempBlobReader, TermsTextFR);
-            end;
-
-            trigger OnPreDataItem()
+            var
+                InStream: InStream;
             begin
                 TotalQtyShipped := 0;
+                EnsurePackingSlipNo();
+
+                // Determina se è un cliente francese
+                IsFrenchCustomer := ("Language Code" = 'FRC') or ("Language Code" = 'fr-CA');
+
+                SalesReceivablesSetup.Get();
+
+                // Lettura termini EN
+                SalesReceivablesSetup.CalcFields("JOVI ENUS Terms");
+                Clear(TermsTextEN);
+                if SalesReceivablesSetup."JOVI ENUS Terms".HasValue() then begin
+                    SalesReceivablesSetup."JOVI ENUS Terms".CreateInStream(InStream, TextEncoding::UTF8);
+                    InStream.ReadText(TermsTextEN);
+                end;
+
+                // Lettura termini FR
+                SalesReceivablesSetup.CalcFields("JOVI fr-CA Terms");
+                Clear(TermsTextFR);
+                if SalesReceivablesSetup."JOVI fr-CA Terms".HasValue() then begin
+                    SalesReceivablesSetup."JOVI fr-CA Terms".CreateInStream(InStream, TextEncoding::UTF8);
+                    InStream.ReadText(TermsTextFR);
+                end;
+
+                // Imposta i termini in base alla lingua
+                if IsFrenchCustomer then
+                    TermsText := TermsTextFR
+                else
+                    TermsText := TermsTextEN;
             end;
         }
     }
+
     labels
     {
-        PackingSlipLbl = 'PACKING SLIP';
-        PackingSlipFrenchLbl = 'BON DE LIVRAISON';
-
-        OrderNoLbl = 'ORDER No.';
+        PackingSlipLbl = 'BON DE LIVRAISON PACKING SLIP';
+        OrderNoLbl = 'Nº DE COMMANDE ORDER No.';
         PONoLbl = 'PO No.';
-        DueDateLbl = 'DUE DATE';
-        ShipDateLbl = 'SHIP DATE';
-        ViaLbl = 'VIA';
-        CurrencyLbl = 'CURRENCY';
-        StoreNoLbl = 'STORE No.';
-        PalletsLbl = 'No. OF PALLETS';
-        CartonsLbl = 'No. OF CARTONS';
-        SoldToLbl = 'SOLD TO:';
-        ShipToLbl = 'SHIP TO:';
-
-
-        ItemLbl = 'ITEM';
-        DescriptionLbl = 'DESCRIPTION';
-        ShipQtyLbl = 'SHIP QTY';
+        DueDateLbl = 'DATE D''ÉCHÉANCE DUE DATE';
+        ShipDateLbl = 'DATE D''EXPÉDITION SHIP DATE';
+        ViaLbl = 'PAR VIA VIA';
+        CurrencyLbl = 'DEVISE CURRENCY';
+        StoreNoLbl = 'Nº DE MAGASIN STORE No.';
+        PalletsLbl = 'Nº DE PALETTES No. OF PALLETS';
+        CartonsLbl = 'Nº DE CARTONS No. OF CARTONS';
+        SoldToLbl = 'VENDU À: SOLD TO:';
+        ShipToLbl = 'EXPÉDIÉ À: SHIP TO:';
+        ItemLbl = 'ARTICLE ITEM';
+        DescriptionLbl = 'DESCRIPTION DESCRIPTION';
+        ShipQtyLbl = 'QTÉ EXPÉDIÉE SHIP QTY';
         NotesLbl = 'NOTES';
-        TotalQtyShippedLbl = 'TOTAL QTY SHIPPED';
-
-
-        TotalQtyShippedFrenchLbl = 'QTÉ TOTALE EXPÉDIÉE';
-        ItemFrenchLbl = 'ARTICLE';
-        DescriptionFrenchLbl = 'DESCRIPTION';
-        ShipQtyFrenchLbl = 'QTÉ EXPÉDIÉE';
-        OrderFrenchLbl = 'Nº DE COMMANDE';
-        DueDateFrenchLbl = 'DATE D''ÉCHÉANCE';
-        ViaFrenchLbl = 'PAR VIA';
-        ShipDateFrenchLbl = 'DATE D''EXPÉDITION';
-        CurrencyFrenchLbl = 'DEVISE';
-        StoreFrenchLbl = 'Nº DE MAGASIN';
-        PalletsFrenchLbl = 'Nº DE PALETTES';
-        CartonsFrenchLbl = 'Nº DE CARTONS';
-        SoldToFrenchLbl = 'VENDU À:';
-        ShipToFrenchLbl = 'EXPÉDIÉ À:';
+        TotalQtyShippedLbl = 'QTÉ TOTALE EXPÉDIÉE TOTAL QTY SHIPPED';
     }
-    local procedure ReadBlobAsText(var BlobReader: Record "JOVI Blob Reader" temporary; var ResultText: Text)
-    var
-        InStream: InStream;
-    begin
-        Clear(ResultText);
-        if not BlobReader.Content.HasValue then
-            exit;
 
-        BlobReader.Content.CreateInStream(InStream, TextEncoding::UTF8);
-        if not InStream.EOS then
-            InStream.Read(ResultText);
+    trigger OnInitReport()
+    begin
+        SalesReceivablesSetup.Get();
     end;
 
     local procedure EnsurePackingSlipNo()
@@ -159,26 +137,19 @@ report 50101 "JOVI Packing Slip"
         PackingSlipNo := "Sales Header"."JOVI Packing Slip No.";
     end;
 
-    local procedure GetNoteLine(LineNo: Integer): Text
-    var
-        Notes: Text;
-        NoteLines: List of [Text];
-        i: Integer;
+    local procedure GetUOMText(): Text
     begin
-        Notes := "Sales Header"."JOVI Packing Slip Notes";
-        NoteLines := Notes.Split('\');
-
-        if LineNo <= NoteLines.Count() then
-            exit(NoteLines.Get(LineNo));
-
-        exit('');
+        if "Sales Line"."Unit of Measure" <> '' then
+            exit("Sales Line"."Unit of Measure");
+        exit('PCS');
     end;
 
     var
         SalesReceivablesSetup: Record "Sales & Receivables Setup";
-        TempBlobReader: Record "JOVI Blob Reader" temporary;
         TotalQtyShipped: Decimal;
         TermsTextEN: Text;
         TermsTextFR: Text;
+        TermsText: Text;
         PackingSlipNo: Code[20];
+        IsFrenchCustomer: Boolean;
 }
